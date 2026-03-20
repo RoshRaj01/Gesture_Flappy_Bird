@@ -29,71 +29,113 @@
 
   /* ── MOBILE layout ── */
   @media (max-width:700px) {
-    html, body { overflow-y:auto; align-items:flex-start; justify-content:flex-start; }
+    html, body {
+      overflow:hidden;
+      align-items:flex-start;
+      justify-content:flex-start;
+      height:100dvh; width:100vw;
+    }
 
     #app {
       flex-direction:column;
-      align-items:center;
-      justify-content:flex-start;
-      gap:8px;
-      padding:6px;
+      align-items:stretch;
+      gap:0; padding:0;
+      width:100vw;
+      height:100dvh;
+    }
+
+    /* TOP: game, natural ratio, centered */
+    #gameWrap {
       width:100%;
-      min-height:unset;
-    }
-
-    #gameWrap { width:100%; }
-
-    /* Game canvas: fixed height so it fits on screen with room below */
-    #gameCanvas {
-      width:100% !important;
-      height:auto !important;
-      max-height:52vh !important;
-      object-fit:contain;
-    }
-
-    /* Bottom row: camera left, instructions right */
-    #camPanel {
-      width:100% !important;
-      flex-direction:row !important;
-      align-items:flex-start;
-      gap:6px;
-    }
-
-    /* Camera takes ~55% width */
-    #camLeft {
-      flex:0 0 55%;
+      flex-shrink:0;
+      background:#120820;
       display:flex;
-      flex-direction:column;
-      gap:6px;
+      align-items:center;
+      justify-content:center;
+      height:min(calc(100vw * 640 / 360), 55dvh);
+      overflow:hidden;
     }
+    #gameCanvas {
+      width:auto !important;
+      height:100% !important;
+      max-width:100% !important;
+      display:block;
+    }
+
+    /* BOTTOM: column layout — row on top, hand bar below */
+    #camPanel {
+      flex:1;
+      display:flex !important;
+      flex-direction:column !important;
+      width:100% !important;
+      min-height:0;
+      overflow:hidden;
+    }
+
+    /* camRow: camera left + instructions right, fills available height */
+    #camRow {
+      display:flex !important;
+      flex-direction:row !important;
+      flex:1;
+      min-height:0;
+      overflow:hidden;
+    }
+
+    /* Camera: 58% */
+    #camLeft {
+      flex:0 0 58% !important;
+      display:flex !important;
+      flex-direction:column !important;
+      min-height:0;
+      overflow:hidden;
+    }
+    .panel-label { display:none !important; }
+    #camStatus   { display:none !important; }
 
     #camWrap {
+      flex:1 !important;
       width:100% !important;
       height:auto !important;
-      aspect-ratio:4/3;
+      border-radius:0 !important;
+      border:none !important;
+      box-shadow:none !important;
+      border-bottom:1px solid rgba(255,225,77,0.15) !important;
     }
-
+    #camWrap::before, #camWrap::after { display:none !important; }
     #handCanvas { width:100% !important; height:100% !important; }
 
-    #handBar { padding:5px 8px; }
-    #handBarLabel { font-size:15px !important; min-width:40px !important; }
-
-    /* Instructions takes remaining ~45% */
+    /* Instructions: 42% */
     #camRight {
-      flex:1;
-      display:flex;
-      flex-direction:column;
-      gap:4px;
+      flex:1 !important;
+      display:flex !important;
+      flex-direction:column !important;
+      background:rgba(10,6,30,0.97);
+      border-left:1px solid rgba(80,80,180,0.35);
+      overflow-y:auto;
+      min-height:0;
     }
-
     #instructions {
-      font-size:13px !important;
-      padding:8px 10px !important;
-      line-height:1.7 !important;
+      flex:1;
+      font-size:11px !important;
+      padding:8px 7px !important;
+      line-height:1.8 !important;
+      border:none !important;
+      border-radius:0 !important;
+      background:transparent !important;
     }
+    #instructions .sec { font-size:9px !important; letter-spacing:1px !important; }
 
-    .panel-label { display:none; }
-    #camStatus { font-size:12px !important; }
+    /* Hand bar: full width, below camRow */
+    #handBar {
+      flex-shrink:0 !important;
+      width:100% !important;
+      padding:5px 10px !important;
+      border-radius:0 !important;
+      border:none !important;
+      border-top:1px solid rgba(255,225,77,0.25) !important;
+      background:rgba(0,0,0,0.9) !important;
+    }
+    #handBarLabel { font-size:14px !important; min-width:40px !important; }
   }
 
   #gameWrap { position:relative; flex-shrink:0; }
@@ -106,8 +148,12 @@
   }
 
   #camPanel { display:flex; flex-direction:column; gap:10px; width:280px; padding-top:4px; }
-  #camLeft  { display:contents; } /* transparent on desktop */
-  #camRight { display:contents; } /* transparent on desktop */
+  /* Desktop only: transparent wrappers so desktop layout unchanged */
+  @media (min-width:701px) {
+    #camLeft  { display:contents; }
+    #camRight { display:contents; }
+    #camRow   { display:contents; }
+  }
 
   .panel-label { font-family:'VT323',monospace; font-size:12px; color:rgba(255,225,77,0.5); letter-spacing:3px; }
 
@@ -160,29 +206,36 @@
   </div>
 
   <div id="camPanel">
-    <div class="panel-label">📷 CAMERA FEED</div>
-    <div id="camWrap">
-      <video id="camFeed" autoplay playsinline muted></video>
-      <canvas id="handCanvas"></canvas>
+    <!-- camRow: side-by-side on mobile, transparent on desktop -->
+    <div id="camRow">
+      <div id="camLeft">
+        <div class="panel-label">📷 CAMERA FEED</div>
+        <div id="camWrap">
+          <video id="camFeed" autoplay playsinline muted></video>
+          <canvas id="handCanvas"></canvas>
+        </div>
+        <div id="camStatus"></div>
+      </div>
+      <div id="camRight">
+        <div id="instructions">
+          <span class="sec">— CONTROLS —</span>
+          ✋ Hand HIGH → UP<br>
+          ✋ Hand LOW → DOWN<br>
+          🤌 Pinch → collect
+          <hr class="sep">
+          <span class="sec">— COLLECT —</span>
+          🍎 Pinch near fruit<br>
+          🐦 Enemy = death
+        </div>
+      </div>
     </div>
+    <!-- handBar: full width below camRow -->
     <div id="handBar">
       <div id="handBarLabel">—</div>
       <div id="handBarTrack">
         <div id="handBarFill"></div>
         <div id="handBarDot" style="left:50%"></div>
       </div>
-    </div>
-    <div id="camStatus"></div>
-    <div id="instructions">
-      <span class="sec">— CONTROLS —</span>
-      ✋ Hand HIGH → bird UP<br>
-      ✋ Hand LOW → bird DOWN<br>
-      🤌 Pinch → collect fruit
-      <hr class="sep">
-      <span class="sec">— COLLECT —</span>
-      🍎 Pinch near fruit to grab<br>
-      🐦 Enemy birds = death
-
     </div>
   </div>
 </div>
@@ -203,18 +256,16 @@ const W = 360, H = 640;
 function scaleCanvas() {
   const isMobile = window.innerWidth <= 700;
   if (isMobile) {
-    // Game canvas: fit width, max 52vh tall so camera fits below
-    const maxH = window.innerHeight * 0.52;
-    const scaleByW = (window.innerWidth - 12) / W;
-    const scaleByH = maxH / H;
-    const scale = Math.min(scaleByW, scaleByH);
-    canvas.style.width  = Math.floor(W * scale) + 'px';
-    canvas.style.height = Math.floor(H * scale) + 'px';
-    // handCanvas matches camWrap
-    const hw = document.getElementById('handCanvas');
-    const cw = document.getElementById('camWrap');
-    hw.width  = cw.offsetWidth  || 180;
-    hw.height = cw.offsetHeight || 135;
+    // CSS handles game canvas sizing naturally
+    // Sync handCanvas resolution to its display size
+    setTimeout(() => {
+      const hw = document.getElementById('handCanvas');
+      const cw = document.getElementById('camWrap');
+      if (cw && cw.offsetWidth > 0) {
+        hw.width  = cw.offsetWidth;
+        hw.height = cw.offsetHeight;
+      }
+    }, 150);
   } else {
     canvas.style.width  = W + 'px';
     canvas.style.height = H + 'px';
