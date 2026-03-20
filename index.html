@@ -42,17 +42,18 @@
       gap:0; padding:0;
       width:100vw;
       height:100dvh;
+      overflow:hidden;
     }
 
-    /* TOP: game, natural ratio, centered */
+    /* TOP: game — takes 52% of screen height, natural ratio, no stretch */
     #gameWrap {
       width:100%;
+      height:52dvh;
       flex-shrink:0;
       background:#120820;
       display:flex;
       align-items:center;
       justify-content:center;
-      height:min(calc(100vw * 640 / 360), 55dvh);
       overflow:hidden;
     }
     #gameCanvas {
@@ -62,32 +63,32 @@
       display:block;
     }
 
-    /* BOTTOM: column layout — row on top, hand bar below */
+    /* BOTTOM SECTION: takes remaining 48dvh, column layout */
     #camPanel {
-      flex:1;
+      height:48dvh !important;
+      flex-shrink:0 !important;
       display:flex !important;
       flex-direction:column !important;
       width:100% !important;
-      min-height:0;
       overflow:hidden;
     }
 
-    /* camRow: camera left + instructions right, fills available height */
+    /* ROW: camera (left) + instructions (right) — takes most of bottom */
     #camRow {
       display:flex !important;
       flex-direction:row !important;
-      flex:1;
-      min-height:0;
+      flex:1 !important;
+      min-height:0 !important;
       overflow:hidden;
     }
 
-    /* Camera: 58% */
+    /* Camera: 60% width, fills row height */
     #camLeft {
-      flex:0 0 58% !important;
+      flex:0 0 60% !important;
       display:flex !important;
       flex-direction:column !important;
-      min-height:0;
       overflow:hidden;
+      min-height:0;
     }
     .panel-label { display:none !important; }
     #camStatus   { display:none !important; }
@@ -99,14 +100,13 @@
       border-radius:0 !important;
       border:none !important;
       box-shadow:none !important;
-      border-bottom:1px solid rgba(255,225,77,0.15) !important;
     }
     #camWrap::before, #camWrap::after { display:none !important; }
     #handCanvas { width:100% !important; height:100% !important; }
 
-    /* Instructions: 42% */
+    /* Instructions: 40% width, fills row height */
     #camRight {
-      flex:1 !important;
+      flex:0 0 40% !important;
       display:flex !important;
       flex-direction:column !important;
       background:rgba(10,6,30,0.97);
@@ -115,27 +115,33 @@
       min-height:0;
     }
     #instructions {
-      flex:1;
       font-size:11px !important;
       padding:8px 7px !important;
-      line-height:1.8 !important;
+      line-height:1.75 !important;
       border:none !important;
       border-radius:0 !important;
       background:transparent !important;
+      height:100%;
     }
     #instructions .sec { font-size:9px !important; letter-spacing:1px !important; }
+    #instructions .sep { margin:5px 0 !important; }
 
-    /* Hand bar: full width, below camRow */
+    /* HAND BAR: fixed height at bottom, full width */
     #handBar {
       flex-shrink:0 !important;
+      height:32px !important;
       width:100% !important;
-      padding:5px 10px !important;
+      padding:0 10px !important;
       border-radius:0 !important;
       border:none !important;
-      border-top:1px solid rgba(255,225,77,0.25) !important;
-      background:rgba(0,0,0,0.9) !important;
+      border-top:1px solid rgba(255,225,77,0.3) !important;
+      background:rgba(0,0,0,0.92) !important;
+      display:flex !important;
+      align-items:center !important;
     }
-    #handBarLabel { font-size:14px !important; min-width:40px !important; }
+    #handBarLabel { font-size:12px !important; min-width:38px !important; }
+    #handBarTrack { height:10px !important; }
+    #handBarDot   { width:8px !important; height:8px !important; }
   }
 
   #gameWrap { position:relative; flex-shrink:0; }
