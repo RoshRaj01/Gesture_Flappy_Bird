@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flappy Bird – Gesture Edition</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap');
+
+  :root {
+    --sky: #4ec0ca;
+    --ground: #ded895;
+    --pipe: #73bf2e;
+    --pipe-dark: #4a8c1c;
+    --bird: #f5c842;
+    --ui-bg: rgba(0,0,0,0.75);
+    --neon: #ffe14d;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1a0a2e;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Press Start 2P', monospace;
+    overflow: hidden;
+  }
+
+  #app {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  /* ── Game Canvas ── */
+  #gameCanvas {
+    border: 4px solid var(--neon);
+    box-shadow: 0 0 30px var(--neon), 0 0 60px rgba(255,225,77,0.3);
+    image-rendering: pixelated;
+    display: block;
+  }
+
+  /* ── Camera Panel ── */
+  #camPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+
+  #camWrap {
+    position: relative;
+    width: 220px;
+    height: 165px;
+    border: 3px solid var(--neon);
+    box-shadow: 0 0 15px var(--neon);
+    overflow: hidden;
+    border-radius: 4px;
+  }
+
+  #camFeed {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+    display: block;
+  }
+
+  #handCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    transform: scaleX(-1);
+  }
+
+  #gestureLabel {
+    font-family: 'VT323', monospace;
+    font-size: 22px;
+    color: var(--neon);
+    background: var(--ui-bg);
+    padding: 6px 12px;
+    border: 2px solid var(--neon);
+    width: 220px;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+
+  #instructions {
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    color: #aaf;
+    background: rgba(0,0,0,0.6);
+    padding: 10px;
+    border: 2px solid #448;
+    width: 220px;
+    line-height: 1.7;
+  }
+
+  #instructions span { color: var(--neon); }
+
+  /* ── Overlay screens ── */
+  #overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.7);
+    gap: 18px;
+    pointer-events: none;
+  }
+
+  #overlay h1 {
+    font-size: 22px;
+    color: var(--neon);
+    text-shadow: 0 0 10px var(--neon);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  #overlay p {
+    font-size: 9px;
+    color: #fff;
+    text-align: center;
+    line-height: 2;
+  }
+
+  #overlay .score-big {
+    font-size: 36px;
+    color: #fff;
+    text-shadow: 0 0 8px #fff;
+  }
+
+  #camStatus {
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    color: #f84;
+    text-align: center;
+    width: 220px;
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- Game -->
+  <div style="position:relative;">
+    <canvas id="gameCanvas" width="360" height="640"></canvas>
+    <div id="overlay">
+      <h1>🐦 FLAPPY<br>GESTURE</h1>
+      <p>📷 Allow camera access<br>Then pinch index + thumb to flap!<br><br>Move hand UP/DOWN<br>to guide the bird</p>
+    </div>
+  </div>
+
+  <!-- Camera + controls -->
+  <div id="camPanel">
+    <div id="camWrap">
+      <video id="camFeed" autoplay playsinline muted></video>
+      <canvas id="handCanvas"></canvas>
+    </div>
+    <div id="gestureLabel">📷 Starting cam...</div>
+    <div id="camStatus"></div>
+    <div id="instructions">
+      <span>CONTROLS:</span><br>
+      ✌ Pinch thumb+index<br>
+      &nbsp;&nbsp;→ FLAP / start<br><br>
+      ✋ Move hand up/down<br>
+      &nbsp;&nbsp;→ Guide bird<br><br>
+      <span>TIPS:</span><br>
+      Keep hand in frame<br>
+      Good lighting helps!
+    </div>
+  </div>
+</div>
+
+<!-- MediaPipe -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+
+<script>
+// ═══════════════════════════════════════════════
+//  GAME ENGINE
+// ═══════════════════════════════════════════════
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+const overlay = document.getElementById('overlay');
+const gestureLabel = document.getElementById('gestureLabel');
+
+// Sprite pixel art helpers
+function drawBird(x, y, flapAnim) {
+  const b = Math.sin(flapAnim) * 4;
+  // Body
+  ctx.fillStyle = '#f5c842';
+  ctx.beginPath();
+  ctx.ellipse(x, y, 18, 14, -0.3, 0, Math.PI*2);
+  ctx.fill();
+  // Wing
+  ctx.fillStyle = '#e0a800';
+  ctx.beginPath();
+  ctx.ellipse(x-4, y+b, 10, 6, 0.5, 0, Math.PI*2);
+  ctx.fill();
+  // Eye
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(x+7, y-4, 5, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#111';
+  ctx.beginPath(); ctx.arc(x+8, y-4, 3, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(x+9, y-5, 1, 0, Math.PI*2); ctx.fill();
+  // Beak
+  ctx.fillStyle = '#f97316';
+  ctx.beginPath();
+  ctx.moveTo(x+14, y-2);
+  ctx.lineTo(x+22, y+1);
+  ctx.lineTo(x+14, y+4);
+  ctx.closePath(); ctx.fill();
+}
+
+function drawPipe(x, topH, gapH) {
+  const pw = 60;
+  const capH = 20, capW = 68;
+
+  // Top pipe
+  const grad1 = ctx.createLinearGradient(x, 0, x+pw, 0);
+  grad1.addColorStop(0, '#5aaf20');
+  grad1.addColorStop(0.4, '#73bf2e');
+  grad1.addColorStop(1, '#3a7a10');
+  ctx.fillStyle = grad1;
+  ctx.fillRect(x, 0, pw, topH);
+  // Top cap
+  const grad2 = ctx.createLinearGradient(x-4, 0, x+capW, 0);
+  grad2.addColorStop(0, '#5aaf20');
+  grad2.addColorStop(0.4, '#73bf2e');
+  grad2.addColorStop(1, '#3a7a10');
+  ctx.fillStyle = grad2;
+  ctx.fillRect(x-4, topH-capH, capW, capH);
+
+  // Bottom pipe
+  const botY = topH + gapH;
+  ctx.fillStyle = grad1;
+  ctx.fillRect(x, botY, pw, H - botY - 80);
+  ctx.fillStyle = grad2;
+  ctx.fillRect(x-4, botY, capW, capH);
+
+  // Shine
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.fillRect(x+6, 0, 8, topH);
+  ctx.fillRect(x+6, botY+capH, 8, H - botY - capH - 80);
+}
+
+function drawBackground() {
+  // Sky gradient
+  const sky = ctx.createLinearGradient(0, 0, 0, H-80);
+  sky.addColorStop(0, '#1a8fe0');
+  sky.addColorStop(1, '#6dd5f5');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H-80);
+
+  // Clouds
+  game.clouds.forEach(c => {
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.beginPath();
+    ctx.ellipse(c.x, c.y, 38, 18, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(c.x+28, c.y+5, 28, 14, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(c.x-22, c.y+5, 22, 12, 0, 0, Math.PI*2); ctx.fill();
+  });
+
+  // Ground
+  const grd = ctx.createLinearGradient(0, H-80, 0, H);
+  grd.addColorStop(0, '#ded895');
+  grd.addColorStop(1, '#c8b866');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, H-80, W, 80);
+  // Ground stripe
+  ctx.fillStyle = '#c8b866';
+  ctx.fillRect(0, H-80, W, 8);
+  // Ground texture dots
+  ctx.fillStyle = 'rgba(0,0,0,0.08)';
+  for(let i=0;i<W;i+=20) ctx.fillRect(i, H-65, 8, 4);
+}
+
+// ── Game state ──
+const GRAVITY = 0.45;
+const FLAP_FORCE = -9;
+const PIPE_SPEED = 2.8;
+const PIPE_GAP = 160;
+const PIPE_INTERVAL = 1600;
+
+let game = {
+  state: 'idle', // idle | playing | dead
+  bird: { x: 80, y: H/2, vy: 0, angle: 0, flapAnim: 0 },
+  pipes: [],
+  score: 0,
+  best: 0,
+  clouds: [{x:80,y:80},{x:220,y:120},{x:310,y:60}],
+  lastPipe: 0,
+  frame: 0,
+  groundX: 0,
+};
+
+function spawnPipe() {
+  const topH = 80 + Math.random() * (H - 80 - 80 - PIPE_GAP - 80);
+  game.pipes.push({ x: W + 10, topH, scored: false });
+}
+
+function resetGame() {
+  game.bird = { x: 80, y: H/2, vy: 0, angle: 0, flapAnim: 0 };
+  game.pipes = [];
+  game.score = 0;
+  game.state = 'playing';
+  game.lastPipe = Date.now();
+  overlay.style.display = 'none';
+}
+
+function flap() {
+  if (game.state === 'idle' || game.state === 'dead') {
+    resetGame();
+    return;
+  }
+  game.bird.vy = FLAP_FORCE;
+}
+
+function checkCollision() {
+  const { x, y } = game.bird;
+  const r = 12;
+  if (y + r >= H - 80 || y - r <= 0) return true;
+  for (const p of game.pipes) {
+    if (x + r > p.x + 4 && x - r < p.x + 60) {
+      if (y - r < p.topH || y + r > p.topH + PIPE_GAP) return true;
+    }
+  }
+  return false;
+}
+
+// Hand-guided vertical position
+let handTargetY = null;  // null = not controlling
+let lastPinch = false;
+
+function gameLoop(ts) {
+  game.frame++;
+  ctx.clearRect(0,0,W,H);
+
+  // Move clouds
+  game.clouds.forEach(c => {
+    c.x -= 0.4;
+    if (c.x < -60) c.x = W + 60;
+  });
+
+  drawBackground();
+
+  // Ground scroll
+  game.groundX = (game.groundX - PIPE_SPEED) % 20;
+
+  if (game.state === 'playing') {
+    // Bird physics - hand guides Y gently
+    if (handTargetY !== null) {
+      const targetBirdY = handTargetY * H;
+      const diff = targetBirdY - game.bird.y;
+      game.bird.vy += diff * 0.03;
+      game.bird.vy *= 0.85; // damping
+    } else {
+      game.bird.vy += GRAVITY;
+    }
+    game.bird.y += game.bird.vy;
+    game.bird.angle = Math.min(Math.PI/4, Math.max(-Math.PI/4, game.bird.vy * 0.05));
+    game.bird.flapAnim += 0.35;
+
+    // Spawn pipes
+    if (Date.now() - game.lastPipe > PIPE_INTERVAL) {
+      spawnPipe();
+      game.lastPipe = Date.now();
+    }
+
+    // Move pipes
+    game.pipes.forEach(p => {
+      p.x -= PIPE_SPEED;
+      if (!p.scored && p.x + 60 < game.bird.x) {
+        p.scored = true;
+        game.score++;
+      }
+    });
+    game.pipes = game.pipes.filter(p => p.x > -80);
+
+    if (checkCollision()) {
+      game.state = 'dead';
+      if (game.score > game.best) game.best = game.score;
+      showDead();
+    }
+  }
+
+  // Draw pipes
+  game.pipes.forEach(p => drawPipe(p.x, p.topH, PIPE_GAP));
+
+  // Draw bird
+  ctx.save();
+  ctx.translate(game.bird.x, game.bird.y);
+  ctx.rotate(game.bird.angle);
+  ctx.translate(-game.bird.x, -game.bird.y);
+  drawBird(game.bird.x, game.bird.y, game.bird.flapAnim);
+  ctx.restore();
+
+  // HUD
+  if (game.state === 'playing') {
+    ctx.fillStyle = '#fff';
+    ctx.font = '28px "Press Start 2P"';
+    ctx.textAlign = 'center';
+    ctx.fillText(game.score, W/2, 50);
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillText(game.score, W/2+2, 52);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(game.score, W/2, 50);
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+function showDead() {
+  overlay.style.display = 'flex';
+  overlay.innerHTML = `
+    <div class="score-big">💀</div>
+    <h1>GAME OVER</h1>
+    <p class="score-big">${game.score}</p>
+    <p>BEST: ${game.best}</p>
+    <p style="margin-top:12px">PINCH to restart</p>
+  `;
+}
+
+// Keyboard fallback
+window.addEventListener('keydown', e => {
+  if (e.code === 'Space') { e.preventDefault(); flap(); }
+});
+canvas.addEventListener('click', flap);
+
+// Start loop
+requestAnimationFrame(gameLoop);
+
+// ═══════════════════════════════════════════════
+//  MEDIAPIPE HAND TRACKING
+// ═══════════════════════════════════════════════
+const video = document.getElementById('camFeed');
+const handCanvas = document.getElementById('handCanvas');
+const hCtx = handCanvas.getContext('2d');
+const camStatus = document.getElementById('camStatus');
+
+let pinchCooldown = 0;
+
+function dist(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function onResults(results) {
+  hCtx.clearRect(0, 0, handCanvas.width, handCanvas.height);
+
+  if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+    handTargetY = null;
+    gestureLabel.textContent = '✋ No hand detected';
+    lastPinch = false;
+    return;
+  }
+
+  const landmarks = results.multiHandLandmarks[0];
+
+  // Draw hand skeleton
+  drawConnectors(hCtx, landmarks, HAND_CONNECTIONS, { color: 'rgba(255,225,77,0.7)', lineWidth: 2 });
+  drawLandmarks(hCtx, landmarks, { color: '#fff', fillColor: 'rgba(255,100,100,0.8)', lineWidth: 1, radius: 4 });
+
+  const thumb = landmarks[4];   // thumb tip
+  const index = landmarks[8];   // index tip
+  const wrist = landmarks[0];
+
+  // Pinch detection
+  const pinchDist = dist(thumb, index);
+  const isPinching = pinchDist < 0.07;
+
+  // Hand Y position (wrist normalized Y → bird target)
+  // Mirror: landmarks are mirrored with canvas transform
+  handTargetY = wrist.y; // 0=top, 1=bottom
+
+  // Gesture label
+  if (isPinching) {
+    gestureLabel.textContent = '🤌 PINCH! FLAP!';
+    if (!lastPinch && pinchCooldown <= 0) {
+      flap();
+      pinchCooldown = 18; // frames cooldown
+    }
+  } else {
+    const pos = wrist.y < 0.35 ? '⬆ Hand HIGH' :
+                wrist.y > 0.65 ? '⬇ Hand LOW' : '✋ Hand MID';
+    gestureLabel.textContent = pos;
+  }
+
+  if (pinchCooldown > 0) pinchCooldown--;
+  lastPinch = isPinching;
+
+  // Highlight thumb and index
+  [thumb, index].forEach((lm, i) => {
+    hCtx.beginPath();
+    hCtx.arc(lm.x * handCanvas.width, lm.y * handCanvas.height, 8, 0, Math.PI*2);
+    hCtx.fillStyle = isPinching ? '#ff4444' : (i===0 ? '#ffe14d' : '#44ff88');
+    hCtx.fill();
+    hCtx.strokeStyle = '#fff';
+    hCtx.lineWidth = 2;
+    hCtx.stroke();
+  });
+
+  // Draw pinch line
+  hCtx.beginPath();
+  hCtx.moveTo(thumb.x * handCanvas.width, thumb.y * handCanvas.height);
+  hCtx.lineTo(index.x * handCanvas.width, index.y * handCanvas.height);
+  hCtx.strokeStyle = isPinching ? '#ff4444' : '#ffe14d';
+  hCtx.lineWidth = isPinching ? 3 : 1.5;
+  hCtx.stroke();
+}
+
+async function initCamera() {
+  try {
+    camStatus.textContent = 'Loading MediaPipe...';
+
+    // Sync canvas size to video display
+    handCanvas.width = 220;
+    handCanvas.height = 165;
+
+    const hands = new Hands({
+      locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+
+    hands.setOptions({
+      maxNumHands: 1,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.7,
+      minTrackingConfidence: 0.6,
+    });
+
+    hands.onResults(onResults);
+
+    const camera = new Camera(video, {
+      onFrame: async () => {
+        await hands.send({ image: video });
+      },
+      width: 320,
+      height: 240,
+    });
+
+    await camera.start();
+    camStatus.textContent = '';
+    gestureLabel.textContent = '✋ Show your hand!';
+
+    // Update idle overlay with ready message
+    if (game.state === 'idle') {
+      overlay.innerHTML = `
+        <h1>🐦 FLAPPY<br>GESTURE</h1>
+        <p>📷 Camera ready!<br><br>✌ Pinch thumb + index<br>to START & FLAP<br><br>✋ Move hand up/down<br>to guide the bird</p>
+      `;
+    }
+
+  } catch (err) {
+    console.error(err);
+    camStatus.textContent = '⚠ Camera error';
+    gestureLabel.textContent = '⚠ Use SPACE/Click';
+    if (game.state === 'idle') {
+      overlay.innerHTML = `
+        <h1>🐦 FLAPPY<br>BIRD</h1>
+        <p>⚠ Camera unavailable<br><br>Use SPACE or CLICK<br>to flap!</p>
+      `;
+    }
+  }
+}
+
+// Wait for MediaPipe to load
+window.addEventListener('load', () => {
+  setTimeout(initCamera, 800);
+});
+</script>
+</body>
+</html>
