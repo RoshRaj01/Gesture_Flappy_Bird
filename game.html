@@ -407,7 +407,7 @@ function render(){
     ctx.font='7px "Press Start 2P"';
     ctx.fillStyle='rgba(255,255,255,0.4)';
     const lv=Math.floor(game.score/10);
-    ctx.fillText(lv===0?'✋ HAND MODE':'✋ HAND MODE  ⚡LV'+lv,W/2,66);
+    ctx.fillText(lv===0?'✋ GESTURE MODE':'⚡LV'+lv,W/2,66);
   }
   // FPS
   const fc=fps>=55?'#44ff88':fps>=40?'#ffe14d':'#ff4444';
