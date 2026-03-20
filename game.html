@@ -6,161 +6,136 @@
 <title>Flappy Bird – Gesture Edition</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap');
-
-  :root {
-    --neon: #ffe14d;
-    --ui-bg: rgba(0,0,0,0.75);
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root { --neon: #ffe14d; }
+  * { margin:0; padding:0; box-sizing:border-box; }
 
   body {
     background: #120820;
     background-image: radial-gradient(ellipse at 20% 50%, #1e0a3a 0%, transparent 60%),
                       radial-gradient(ellipse at 80% 20%, #0a1a3a 0%, transparent 50%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    font-family: 'Press Start 2P', monospace;
-    overflow: hidden;
+    display:flex; align-items:center; justify-content:center;
+    min-height:100vh; font-family:'Press Start 2P',monospace; overflow:hidden;
   }
 
-  #app {
-    display: flex;
-    gap: 32px;
-    align-items: flex-start;
-    justify-content: center;
-  }
+  #app { display:flex; gap:32px; align-items:flex-start; justify-content:center; }
 
-  /* ── Game Canvas ── */
   #gameCanvas {
-    border: 4px solid var(--neon);
-    box-shadow: 0 0 30px var(--neon), 0 0 80px rgba(255,225,77,0.25);
-    image-rendering: pixelated;
-    display: block;
-    border-radius: 4px;
+    border:4px solid var(--neon);
+    box-shadow:0 0 30px var(--neon), 0 0 80px rgba(255,225,77,0.25);
+    image-rendering:pixelated; display:block; border-radius:4px;
   }
 
-  /* ── Camera Panel ── */
-  #camPanel {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 300px;
-    padding-top: 4px;
-  }
+  #camPanel { display:flex; flex-direction:column; gap:12px; width:300px; padding-top:4px; }
 
   .panel-label {
-    font-family: 'VT323', monospace;
-    font-size: 13px;
-    color: rgba(255,225,77,0.5);
-    letter-spacing: 3px;
-    margin-bottom: -4px;
+    font-family:'VT323',monospace; font-size:13px;
+    color:rgba(255,225,77,0.5); letter-spacing:3px; margin-bottom:-4px;
   }
 
   #camWrap {
-    position: relative;
-    width: 300px;
-    height: 225px;
-    border: 3px solid var(--neon);
-    box-shadow: 0 0 20px rgba(255,225,77,0.35);
-    overflow: hidden;
-    border-radius: 8px;
+    position:relative; width:300px; height:225px;
+    border:3px solid var(--neon); box-shadow:0 0 20px rgba(255,225,77,0.35);
+    overflow:hidden; border-radius:8px;
   }
-
-  /* Corner brackets */
-  #camWrap::before, #camWrap::after {
-    content: '';
-    position: absolute;
-    width: 16px; height: 16px;
-    border-color: var(--neon);
-    border-style: solid;
-    z-index: 10;
+  #camWrap::before,#camWrap::after {
+    content:''; position:absolute; width:16px; height:16px;
+    border-color:var(--neon); border-style:solid; z-index:10;
   }
-  #camWrap::before { top: 6px; left: 6px; border-width: 2px 0 0 2px; }
-  #camWrap::after  { bottom: 6px; right: 6px; border-width: 0 2px 2px 0; }
+  #camWrap::before { top:6px; left:6px; border-width:2px 0 0 2px; }
+  #camWrap::after  { bottom:6px; right:6px; border-width:0 2px 2px 0; }
 
-  #camFeed {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    transform: scaleX(-1);
-    display: block;
+  #camFeed { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); display:block; }
+  #handCanvas { position:absolute; top:0; left:0; width:100%; height:100%; transform:scaleX(-1); }
+
+  /* Hand position bar */
+  #handBar {
+    display:flex; align-items:center; gap:8px;
+    background:rgba(0,0,0,0.6); border:2px solid rgba(255,225,77,0.35);
+    border-radius:6px; padding:8px 12px;
   }
-
-  #handCanvas {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    transform: scaleX(-1);
+  #handBarLabel {
+    font-family:'VT323',monospace; font-size:19px; color:var(--neon);
+    min-width:54px; text-align:right; white-space:nowrap;
+  }
+  #handBarTrack {
+    flex:1; height:16px; background:rgba(255,255,255,0.07);
+    border:1px solid rgba(255,225,77,0.2); border-radius:3px;
+    position:relative; overflow:hidden;
+  }
+  /* centre tick */
+  #handBarTrack::before {
+    content:''; position:absolute; top:0; left:50%; width:1px; height:100%;
+    background:rgba(255,255,255,0.18); z-index:1;
+  }
+  /* quarter ticks */
+  #handBarTrack::after {
+    content:''; position:absolute; top:25%; left:25%; width:1px; height:50%;
+    background:rgba(255,255,255,0.1); box-shadow:calc(50% - 0px) 0 0 0 rgba(255,255,255,0.1);
+  }
+  #handBarFill {
+    position:absolute; top:0; left:0; height:100%; width:0%;
+    background:linear-gradient(90deg,#44ff88,#ffe14d);
+    border-radius:3px; transition:width 0.05s;
+  }
+  /* Indicator dot */
+  #handBarDot {
+    position:absolute; top:50%; width:10px; height:10px;
+    background:#fff; border:2px solid #000; border-radius:50%;
+    transform:translate(-50%,-50%); transition:left 0.05s;
+    z-index:2;
   }
 
   #gestureLabel {
-    font-family: 'VT323', monospace;
-    font-size: 24px;
-    color: var(--neon);
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(4px);
-    padding: 10px 14px;
-    border: 2px solid rgba(255,225,77,0.45);
-    border-radius: 6px;
-    text-align: center;
-    letter-spacing: 1px;
+    font-family:'VT323',monospace; font-size:22px; color:var(--neon);
+    background:rgba(0,0,0,0.6); backdrop-filter:blur(4px);
+    padding:8px 14px; border:2px solid rgba(255,225,77,0.4);
+    border-radius:6px; text-align:center; letter-spacing:1px;
   }
 
   #instructions {
-    font-family: 'VT323', monospace;
-    font-size: 18px;
-    color: #c8d4ff;
-    background: rgba(10,6,30,0.75);
-    padding: 14px 16px;
-    border: 2px solid rgba(80,80,180,0.45);
-    border-radius: 8px;
-    line-height: 1.9;
+    font-family:'VT323',monospace; font-size:17px; color:#c8d4ff;
+    background:rgba(10,6,30,0.75); padding:12px 14px;
+    border:2px solid rgba(80,80,180,0.45); border-radius:8px; line-height:1.85;
   }
-  #instructions .sec { color: var(--neon); font-size: 14px; letter-spacing: 2px; display: block; margin-bottom: 2px; }
-  #instructions .sep { border: none; border-top: 1px solid rgba(80,80,180,0.4); margin: 8px 0; }
+  #instructions .sec { color:var(--neon); font-size:12px; letter-spacing:2px; display:block; margin-bottom:2px; }
+  #instructions .sep { border:none; border-top:1px solid rgba(80,80,180,0.4); margin:7px 0; }
 
-  /* ── Overlay ── */
+  /* Overlay */
   #overlay {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0,0,0,0.55);
-    gap: 14px;
-    pointer-events: none;
+    position:absolute; top:0; left:0; right:0; bottom:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:rgba(0,0,0,0.6); gap:14px; pointer-events:none;
   }
+  #overlay.active { pointer-events:all; }
   #overlay .card {
-    background: rgba(0,0,0,0.7);
-    border: 2px solid var(--neon);
-    border-radius: 8px;
-    padding: 12px 22px;
-    text-align: center;
-    box-shadow: 0 0 16px rgba(255,225,77,0.2);
+    background:rgba(0,0,0,0.78); border:2px solid var(--neon);
+    border-radius:8px; padding:12px 22px; text-align:center;
+    box-shadow:0 0 16px rgba(255,225,77,0.2);
   }
-  #overlay h1 { font-size: 20px; color: var(--neon); text-shadow: 0 0 10px var(--neon); line-height: 1.7; }
-  #overlay p  { font-size: 9px; color: #fff; line-height: 2.2; }
-  #overlay .score-big { font-size: 38px; color: #fff; text-shadow: 0 0 8px #fff; }
+  #overlay h1 { font-size:18px; color:var(--neon); text-shadow:0 0 10px var(--neon); line-height:1.7; }
+  #overlay p  { font-size:9px; color:#fff; line-height:2.2; }
+  #overlay .score-big { font-size:36px; color:#fff; text-shadow:0 0 8px #fff; }
 
-  #camStatus {
-    font-family: 'VT323', monospace;
-    font-size: 16px;
-    color: #f84;
-    text-align: center;
+  .mode-btn {
+    font-family:'Press Start 2P',monospace; font-size:8px; color:#111;
+    background:var(--neon); border:none; border-radius:6px;
+    padding:10px 18px; cursor:pointer; margin:4px;
+    box-shadow:0 0 12px rgba(255,225,77,0.4); transition:transform 0.1s; line-height:1.8;
   }
+  .mode-btn:hover { transform:scale(1.06); }
+  .mode-btn.blue  { background:#44aaff; }
+
+  #camStatus { font-family:'VT323',monospace; font-size:15px; color:#f84; text-align:center; }
 </style>
 </head>
 <body>
-
 <div id="app">
   <div style="position:relative;">
     <canvas id="gameCanvas" width="360" height="640"></canvas>
-    <div id="overlay">
+    <div id="overlay" class="active">
       <div class="card"><h1>🐦 FLAPPY<br>GESTURE</h1></div>
-      <div class="card"><p>📷 Allow camera access<br>Pinch thumb+index → FLAP / Start<br>Move hand UP/DOWN → Guide bird</p></div>
+      <div class="card"><p>📷 Allow camera access<br><br>✋ Move hand UP/DOWN to guide bird<br>🤌 Pinch to START &amp; FLAP<br><br>🍎 Collect fruits · 🐦 Dodge enemies</p></div>
+      <div class="card"><p id="camReadyMsg">📷 Waiting for camera...</p></div>
     </div>
   </div>
 
@@ -170,18 +145,29 @@
       <video id="camFeed" autoplay playsinline muted></video>
       <canvas id="handCanvas"></canvas>
     </div>
+
+    <!-- Hand height bar -->
+    <div id="handBar">
+      <div id="handBarLabel">—</div>
+      <div id="handBarTrack">
+        <div id="handBarFill"></div>
+        <div id="handBarDot" style="left:50%"></div>
+      </div>
+    </div>
+
     <div id="gestureLabel">📷 Starting cam...</div>
     <div id="camStatus"></div>
     <div id="instructions">
       <span class="sec">— CONTROLS —</span>
-      🤌 Pinch thumb+index → FLAP<br>
-      ✋ Move hand UP → lift bird<br>
-      ✋ Move hand DOWN → drop bird
+      ✋ Hand HIGH → bird goes UP<br>
+      ✋ Hand LOW → bird goes DOWN<br>
+      🤌 Pinch → extra flap boost
       <hr class="sep">
-      <span class="sec">— TIPS —</span>
-      💡 Keep hand fully in frame<br>
-      💡 Good lighting helps<br>
-      ⌨️ SPACE / click as fallback
+      <span class="sec">— COLLECT —</span>
+      🍎🍊🍋 Fruits = +1 point<br>
+      🐦 Enemy birds = instant death
+      <hr class="sep">
+      ⌨️ SPACE / click = fallback
     </div>
   </div>
 </div>
@@ -189,337 +175,415 @@
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-
 <script>
-// ═══════════════════════════════════════════════
-//  GAME ENGINE
-// ═══════════════════════════════════════════════
 const canvas  = document.getElementById('gameCanvas');
 const ctx     = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
-const overlay = document.getElementById('overlay');
+const overlay      = document.getElementById('overlay');
 const gestureLabel = document.getElementById('gestureLabel');
-
-// ── Drawing helpers ──
-function drawBird(x, y, flapAnim) {
-  const b = Math.sin(flapAnim) * 4;
-  ctx.fillStyle = '#f5c842';
-  ctx.beginPath(); ctx.ellipse(x, y, 18, 14, -0.3, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#e0a800';
-  ctx.beginPath(); ctx.ellipse(x-4, y+b, 10, 6, 0.5, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.arc(x+7, y-4, 5, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#111';
-  ctx.beginPath(); ctx.arc(x+8, y-4, 3, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.arc(x+9, y-5, 1, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#f97316';
-  ctx.beginPath();
-  ctx.moveTo(x+14, y-2); ctx.lineTo(x+22, y+1); ctx.lineTo(x+14, y+4);
-  ctx.closePath(); ctx.fill();
-}
-
-function drawPipe(x, topH, gapH) {
-  const pw = 60, capH = 20, capW = 68;
-  const g1 = ctx.createLinearGradient(x, 0, x+pw, 0);
-  g1.addColorStop(0, '#5aaf20'); g1.addColorStop(0.4, '#73bf2e'); g1.addColorStop(1, '#3a7a10');
-  const g2 = ctx.createLinearGradient(x-4, 0, x+capW, 0);
-  g2.addColorStop(0, '#5aaf20'); g2.addColorStop(0.4, '#73bf2e'); g2.addColorStop(1, '#3a7a10');
-  ctx.fillStyle = g1; ctx.fillRect(x, 0, pw, topH);
-  ctx.fillStyle = g2; ctx.fillRect(x-4, topH-capH, capW, capH);
-  const botY = topH + gapH;
-  ctx.fillStyle = g1; ctx.fillRect(x, botY, pw, H - botY - 80);
-  ctx.fillStyle = g2; ctx.fillRect(x-4, botY, capW, capH);
-  ctx.fillStyle = 'rgba(255,255,255,0.15)';
-  ctx.fillRect(x+6, 0, 8, topH);
-  ctx.fillRect(x+6, botY+capH, 8, H - botY - capH - 80);
-}
-
-function drawBackground() {
-  const sky = ctx.createLinearGradient(0, 0, 0, H-80);
-  sky.addColorStop(0, '#1a8fe0'); sky.addColorStop(1, '#6dd5f5');
-  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H-80);
-  game.clouds.forEach(c => {
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.beginPath(); ctx.ellipse(c.x, c.y, 38, 18, 0, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(c.x+28, c.y+5, 28, 14, 0, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(c.x-22, c.y+5, 22, 12, 0, 0, Math.PI*2); ctx.fill();
-  });
-  const grd = ctx.createLinearGradient(0, H-80, 0, H);
-  grd.addColorStop(0, '#ded895'); grd.addColorStop(1, '#c8b866');
-  ctx.fillStyle = grd; ctx.fillRect(0, H-80, W, 80);
-  ctx.fillStyle = '#c8b866'; ctx.fillRect(0, H-80, W, 8);
-  ctx.fillStyle = 'rgba(0,0,0,0.08)';
-  for (let i = 0; i < W; i += 20) ctx.fillRect(i, H-65, 8, 4);
-}
+const handBarFill  = document.getElementById('handBarFill');
+const handBarDot   = document.getElementById('handBarDot');
+const handBarLabel = document.getElementById('handBarLabel');
 
 // ── Constants ──
-const GRAVITY       = 0.45;
-const FLAP_FORCE    = -9;
-const PIPE_SPEED    = 2.8;
-const PIPE_GAP      = 160;
-const PIPE_INTERVAL = 1600;
+const GRAVITY        = 0.45;
+const FLAP_FORCE     = -9;
+const PIPE_SPEED     = 2.8;
+const PIPE_GAP       = 155;
+const PIPE_INTERVAL  = 1600;
+const FRUIT_INTERVAL = 3200;
+const ENEMY_INTERVAL = 4800;
+const FRUITS = ['🍎','🍊','🍋','🍇','🍓','🫐'];
 
-// ── State ──
+const controlMode = 'hand'; // always hand-height mode
+
 let game = {
-  state: 'idle',
-  bird: { x: 80, y: H/2, vy: 0, angle: 0, flapAnim: 0 },
-  pipes: [],
-  score: 0,
-  best: 0,
-  clouds: [{x:80,y:80},{x:220,y:120},{x:310,y:60}],
-  lastPipe: 0,
-  frame: 0,
-  groundX: 0,
+  state:'idle',
+  bird:{ x:80, y:H/2, vy:0, angle:0, flapAnim:0 },
+  pipes:[], fruits:[], enemies:[], effects:[],
+  score:0, best:0,
+  clouds:[{x:80,y:80},{x:220,y:120},{x:310,y:60}],
+  lastPipe:0, lastFruit:0, lastEnemy:0,
+  frame:0, groundX:0,
 };
 
+
+
+// ── Spawning ──
 function spawnPipe() {
-  const topH = 80 + Math.random() * (H - 80 - 80 - PIPE_GAP - 80);
-  game.pipes.push({ x: W + 10, topH, scored: false });
+  const topH = 80 + Math.random()*(H-80-80-PIPE_GAP-80);
+  game.pipes.push({x:W+10, topH, scored:false});
+}
+function spawnFruit() {
+  // Spawn fruit in the center of the last pipe gap so it's reachable
+  let spawnY = H/2; // default to middle
+  if (game.pipes.length > 0) {
+    const lastP = game.pipes[game.pipes.length-1];
+    spawnY = lastP.topH + PIPE_GAP/2; // center of gap
+  } else {
+    spawnY = 120 + Math.random()*(H-300);
+  }
+  game.fruits.push({
+    x: W+20,
+    y: spawnY,
+    type: FRUITS[Math.floor(Math.random()*FRUITS.length)],
+    bob: Math.random()*Math.PI*2,
+  });
+}
+function spawnEnemy() {
+  game.enemies.push({
+    x:W+20,
+    y:60+Math.random()*(H-200),
+    vy:(Math.random()-0.5)*1.8,
+    frame:0,
+  });
 }
 
+// ── Reset ──
 function resetGame() {
-  game.bird = { x: 80, y: H/2, vy: 0, angle: 0, flapAnim: 0 };
-  game.pipes = [];
-  game.score = 0;
-  game.state = 'playing';
-  game.lastPipe = Date.now();
+  game.bird    = {x:80, y:H/2, vy:0, angle:0, flapAnim:0};
+  game.pipes   = []; game.fruits = []; game.enemies = []; game.effects = [];
+  game.score   = 0;
+  game.state   = 'playing';
+  const now = Date.now();
+  game.lastPipe  = now;
+  game.lastFruit = now + 2000;
+  game.lastEnemy = now + 3500;
   overlay.style.display = 'none';
 }
 
+// ── Flap ──
 function flap() {
-  if (game.state === 'idle' || game.state === 'dead') {
-    resetGame();
-    return;
-  }
-  if (game.state === 'playing') {
-    game.bird.vy = FLAP_FORCE;
-  }
+  if (game.state==='idle'||game.state==='dead') { resetGame(); return; }
+  if (game.state==='playing') game.bird.vy = FLAP_FORCE;
 }
 
+// ── Collision ──
 function checkCollision() {
-  const { x, y } = game.bird;
-  const r = 12;
-  if (y + r >= H - 80 || y - r <= 0) return true;
-  for (const p of game.pipes) {
-    if (x + r > p.x + 4 && x - r < p.x + 60) {
-      if (y - r < p.topH || y + r > p.topH + PIPE_GAP) return true;
-    }
-  }
-  return false;
+  const {x,y}=game.bird, r=12;
+  if (y+r>=H-80 || y-r<=0) return 'wall';
+  for (const p of game.pipes)
+    if (x+r>p.x+4 && x-r<p.x+60 && (y-r<p.topH || y+r>p.topH+PIPE_GAP)) return 'pipe';
+  for (const e of game.enemies)
+    if (Math.hypot(x-e.x, y-e.y)<22) return 'enemy';
+  return null;
 }
 
-// ── Hand state (set by MediaPipe) ──
-// handY: normalized 0=top 1=bottom, null if no hand
-let handY = null;
+// ── Hand state ──
+let handY = null; // 0=top 1=bottom, null=no hand
 
+// ── Draw helpers ──
+function drawBird(x,y,fa) {
+  const b=Math.sin(fa)*4;
+  ctx.fillStyle='#f5c842'; ctx.beginPath(); ctx.ellipse(x,y,18,14,-0.3,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#e0a800'; ctx.beginPath(); ctx.ellipse(x-4,y+b,10,6,0.5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff';    ctx.beginPath(); ctx.arc(x+7,y-4,5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#111';    ctx.beginPath(); ctx.arc(x+8,y-4,3,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff';    ctx.beginPath(); ctx.arc(x+9,y-5,1,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#f97316'; ctx.beginPath();
+  ctx.moveTo(x+14,y-2); ctx.lineTo(x+22,y+1); ctx.lineTo(x+14,y+4);
+  ctx.closePath(); ctx.fill();
+}
+
+function drawEnemyBird(x,y,frame) {
+  const flap=Math.sin(frame*0.25)*5;
+  ctx.fillStyle='#e03030'; ctx.beginPath(); ctx.ellipse(x,y,16,12,0.2,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#a01010'; ctx.beginPath(); ctx.ellipse(x+2,y+flap,9,5,-0.4,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff';    ctx.beginPath(); ctx.arc(x-5,y-3,4,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#f00';    ctx.beginPath(); ctx.arc(x-5,y-3,2.5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#ff9900'; ctx.beginPath();
+  ctx.moveTo(x-14,y); ctx.lineTo(x-8,y-2); ctx.lineTo(x-8,y+2);
+  ctx.closePath(); ctx.fill();
+  // angry brow
+  ctx.strokeStyle='#800'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(x-8,y-7); ctx.lineTo(x-3,y-5); ctx.stroke();
+}
+
+function drawPipe(x,topH,gap) {
+  const pw=60,capH=20,capW=68;
+  const g1=ctx.createLinearGradient(x,0,x+pw,0);
+  g1.addColorStop(0,'#5aaf20'); g1.addColorStop(0.4,'#73bf2e'); g1.addColorStop(1,'#3a7a10');
+  const g2=ctx.createLinearGradient(x-4,0,x+capW,0);
+  g2.addColorStop(0,'#5aaf20'); g2.addColorStop(0.4,'#73bf2e'); g2.addColorStop(1,'#3a7a10');
+  ctx.fillStyle=g1; ctx.fillRect(x,0,pw,topH);
+  ctx.fillStyle=g2; ctx.fillRect(x-4,topH-capH,capW,capH);
+  const botY=topH+gap;
+  ctx.fillStyle=g1; ctx.fillRect(x,botY,pw,H-botY-80);
+  ctx.fillStyle=g2; ctx.fillRect(x-4,botY,capW,capH);
+  ctx.fillStyle='rgba(255,255,255,0.15)';
+  ctx.fillRect(x+6,0,8,topH); ctx.fillRect(x+6,botY+capH,8,H-botY-capH-80);
+}
+
+function drawBackground() {
+  const sky=ctx.createLinearGradient(0,0,0,H-80);
+  sky.addColorStop(0,'#1a8fe0'); sky.addColorStop(1,'#6dd5f5');
+  ctx.fillStyle=sky; ctx.fillRect(0,0,W,H-80);
+  game.clouds.forEach(c=>{
+    ctx.fillStyle='rgba(255,255,255,0.85)';
+    ctx.beginPath(); ctx.ellipse(c.x,c.y,38,18,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(c.x+28,c.y+5,28,14,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(c.x-22,c.y+5,22,12,0,0,Math.PI*2); ctx.fill();
+  });
+  const grd=ctx.createLinearGradient(0,H-80,0,H);
+  grd.addColorStop(0,'#ded895'); grd.addColorStop(1,'#c8b866');
+  ctx.fillStyle=grd; ctx.fillRect(0,H-80,W,80);
+  ctx.fillStyle='#c8b866'; ctx.fillRect(0,H-80,W,8);
+  ctx.fillStyle='rgba(0,0,0,0.08)';
+  for(let i=0;i<W;i+=20) ctx.fillRect(i,H-65,8,4);
+}
+
+// ── Game loop ──
 function gameLoop() {
   game.frame++;
-  ctx.clearRect(0, 0, W, H);
-
-  game.clouds.forEach(c => { c.x -= 0.4; if (c.x < -60) c.x = W + 60; });
+  ctx.clearRect(0,0,W,H);
+  game.clouds.forEach(c=>{ c.x-=0.4; if(c.x<-60)c.x=W+60; });
   drawBackground();
-  game.groundX = (game.groundX - PIPE_SPEED) % 20;
+  game.groundX=(game.groundX-PIPE_SPEED)%20;
 
-  // Idle: bob bird gently
-  if (game.state === 'idle') {
-    game.bird.y = H/2 + Math.sin(game.frame * 0.04) * 12;
-    game.bird.flapAnim += 0.2;
-    game.bird.angle = 0;
+  if (game.state==='idle') {
+    game.bird.y=H/2+Math.sin(game.frame*0.04)*12;
+    game.bird.flapAnim+=0.2; game.bird.angle=0;
   }
 
-  if (game.state === 'playing') {
-
-    // ── Bird physics ──
-    // When hand is detected: map hand Y position directly to a target zone,
-    // apply a soft spring toward it. Gravity still exists but is counteracted
-    // when hand is held high. This feels natural and is NOT jittery because
-    // it's position-based (stable) not delta-based (amplifies noise).
-    if (handY !== null) {
-      // Map hand position to bird target Y within the playfield
-      const minY = 30, maxY = H - 100;
-      const targetY = minY + handY * (maxY - minY);
-      const diff = targetY - game.bird.y;
-      // Spring: pull toward target, strength proportional to distance
-      game.bird.vy += diff * 0.06;
-      // Damping: reduce velocity each frame so it doesn't oscillate
-      game.bird.vy *= 0.78;
+  if (game.state==='playing') {
+    // Physics
+    if (controlMode==='hand' && handY!==null) {
+      const minY=30, maxY=H-110;
+      const targetY=minY+handY*(maxY-minY);
+      game.bird.vy+=(targetY-game.bird.y)*0.06;
+      game.bird.vy*=0.78;
     } else {
-      // No hand: pure gravity
-      game.bird.vy += GRAVITY;
+      game.bird.vy+=GRAVITY;
     }
+    game.bird.vy=Math.max(-12,Math.min(12,game.bird.vy));
+    game.bird.y+=game.bird.vy;
+    game.bird.angle=Math.min(Math.PI/3,Math.max(-Math.PI/4,game.bird.vy*0.06));
+    game.bird.flapAnim+=0.35;
 
-    game.bird.vy = Math.max(-12, Math.min(12, game.bird.vy));
-    game.bird.y += game.bird.vy;
-    game.bird.angle = Math.min(Math.PI/3, Math.max(-Math.PI/4, game.bird.vy * 0.06));
-    game.bird.flapAnim += 0.35;
+    const now=Date.now();
+    if(now-game.lastPipe >PIPE_INTERVAL) { spawnPipe();  game.lastPipe =now; }
+    if(now-game.lastFruit>FRUIT_INTERVAL){ spawnFruit(); game.lastFruit=now; }
+    if(now-game.lastEnemy>ENEMY_INTERVAL){ spawnEnemy(); game.lastEnemy=now; }
 
-    // Pipes
-    if (Date.now() - game.lastPipe > PIPE_INTERVAL) {
-      spawnPipe();
-      game.lastPipe = Date.now();
-    }
-    game.pipes.forEach(p => {
-      p.x -= PIPE_SPEED;
-      if (!p.scored && p.x + 60 < game.bird.x) { p.scored = true; game.score++; }
+    game.pipes.forEach(p=>{
+      p.x-=PIPE_SPEED;
+      if(!p.scored && p.x+60<game.bird.x){ p.scored=true; game.score++; }
     });
-    game.pipes = game.pipes.filter(p => p.x > -80);
+    game.pipes=game.pipes.filter(p=>p.x>-80);
 
-    if (checkCollision()) {
-      game.state = 'dead';
-      if (game.score > game.best) game.best = game.score;
-      showDead();
-    }
+    game.fruits.forEach(f=>{
+      f.x-=PIPE_SPEED; f.bob+=0.07;
+      f.y+=Math.sin(f.bob)*0.4; // gentle bob
+      if(Math.hypot(game.bird.x-f.x,game.bird.y-f.y)<32){
+        game.score++;
+        game.effects.push({x:f.x,y:f.y,text:'+1 '+f.type,life:35,vy:-1.5});
+        f.x=-999; // mark collected
+      }
+    });
+    game.fruits=game.fruits.filter(f=>f.x>-100);
+
+    game.enemies.forEach(e=>{
+      e.x-=PIPE_SPEED+1; e.y+=e.vy; e.frame++;
+      if(e.y<40||e.y>H-100) e.vy*=-1;
+    });
+    game.enemies=game.enemies.filter(e=>e.x>-50);
+
+    game.effects.forEach(ef=>{ ef.y+=ef.vy; ef.life--; });
+    game.effects=game.effects.filter(ef=>ef.life>0);
+
+    const hit=checkCollision();
+    if(hit){ game.state='dead'; if(game.score>game.best)game.best=game.score; showDead(hit); }
   }
 
-  // Draw
-  game.pipes.forEach(p => drawPipe(p.x, p.topH, PIPE_GAP));
+  // Draw entities
+  game.pipes.forEach(p=>drawPipe(p.x,p.topH,PIPE_GAP));
 
+  // Fruits with glow
+  game.fruits.forEach(f=>{
+    ctx.save();
+    ctx.shadowColor='rgba(255,220,80,0.95)'; ctx.shadowBlur=22;
+    ctx.font='30px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(f.type,f.x,f.y);
+    ctx.restore();
+  });
+
+  // Enemy birds
+  game.enemies.forEach(e=>{
+    // Red warning glow
+    ctx.save();
+    ctx.shadowColor='rgba(255,0,0,0.4)'; ctx.shadowBlur=14;
+    drawEnemyBird(e.x,e.y,e.frame);
+    ctx.restore();
+  });
+
+  // Collect effects
+  game.effects.forEach(ef=>{
+    ctx.globalAlpha=ef.life/35;
+    ctx.font='bold 14px "Press Start 2P"';
+    ctx.fillStyle='#ffe14d'; ctx.textAlign='center';
+    ctx.fillText(ef.text,ef.x,ef.y);
+    ctx.globalAlpha=1;
+  });
+
+  // Player bird
   ctx.save();
-  ctx.translate(game.bird.x, game.bird.y);
-  ctx.rotate(game.bird.angle);
-  ctx.translate(-game.bird.x, -game.bird.y);
-  drawBird(game.bird.x, game.bird.y, game.bird.flapAnim);
+  ctx.translate(game.bird.x,game.bird.y); ctx.rotate(game.bird.angle);
+  ctx.translate(-game.bird.x,-game.bird.y);
+  drawBird(game.bird.x,game.bird.y,game.bird.flapAnim);
   ctx.restore();
 
-  if (game.state === 'playing') {
-    ctx.textAlign = 'center';
-    ctx.font = '28px "Press Start 2P"';
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.fillText(game.score, W/2+2, 52);
-    ctx.fillStyle = '#fff';
-    ctx.fillText(game.score, W/2, 50);
+  // HUD
+  if (game.state==='playing') {
+    ctx.textAlign='center';
+    ctx.font='26px "Press Start 2P"';
+    ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.fillText(game.score,W/2+2,52);
+    ctx.fillStyle='#fff';             ctx.fillText(game.score,W/2,50);
+    ctx.font='7px "Press Start 2P"';
+    ctx.fillStyle='rgba(255,255,255,0.45)';
+    ctx.fillText('✋ HAND MODE',W/2,66);
   }
 
   requestAnimationFrame(gameLoop);
 }
 
-function showDead() {
-  overlay.style.display = 'flex';
-  overlay.innerHTML = `
+function showDead(reason) {
+  overlay.style.display='flex';
+  overlay.classList.add('active');
+  const msg = reason==='enemy'?'💥 Hit an enemy bird!'
+            : reason==='wall' ?'💀 Hit the border!'
+            :                  '💀 Hit a pipe!';
+  overlay.innerHTML=`
     <div class="card"><h1>GAME OVER</h1></div>
-    <div class="card"><p class="score-big">${game.score}</p><p style="margin-top:6px;font-size:9px">BEST: ${game.best}</p></div>
-    <div class="card"><p>PINCH to restart</p></div>
-  `;
+    <div class="card">
+      <p>${msg}</p><br>
+      <p class="score-big">${game.score}</p>
+      <p style="font-size:9px;margin-top:6px">BEST: ${game.best}</p>
+    </div>
+    <div class="card">
+      <button class="mode-btn" onclick="quickRestart()">▶ PLAY AGAIN</button>
+    </div>`;
 }
 
-window.addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); flap(); } });
-canvas.addEventListener('click', flap);
+function quickRestart() { resetGame(); }
+
+
+
+window.addEventListener('keydown',e=>{ if(e.code==='Space'){e.preventDefault();flap();} });
+canvas.addEventListener('click',flap);
 requestAnimationFrame(gameLoop);
 
-// ═══════════════════════════════════════════════
-//  MEDIAPIPE HAND TRACKING
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════
+//  MEDIAPIPE
+// ═══════════════════════════════════
 const video      = document.getElementById('camFeed');
 const handCanvas = document.getElementById('handCanvas');
 const hCtx       = handCanvas.getContext('2d');
 const camStatus  = document.getElementById('camStatus');
 
-// Time-based flap cooldown — no frame counting, no edge detection issues
-let lastFlapTime = 0;
-const FLAP_COOLDOWN_MS = 350;
+let lastFlapTime=0;
+const FLAP_COOLDOWN_MS=350;
 
-function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+function dist(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
+
+function updateHandBar(y) {
+  // y: 0=top(high), 1=bottom(low)
+  // Bar fills from left=LOW to right=HIGH, so fill% = (1-y)*100
+  const pct = Math.round((1-y)*100);
+  handBarFill.style.width = pct+'%';
+  handBarDot.style.left   = pct+'%';
+
+  if (y < 0.33) {
+    handBarLabel.textContent='⬆ HIGH';
+    handBarFill.style.background='linear-gradient(90deg,#44ff88,#ffe14d)';
+    handBarDot.style.background='#44ff88';
+  } else if (y > 0.66) {
+    handBarLabel.textContent='⬇ LOW';
+    handBarFill.style.background='linear-gradient(90deg,#ff6644,#ffe14d)';
+    handBarDot.style.background='#ff6644';
+  } else {
+    handBarLabel.textContent='✋ MID';
+    handBarFill.style.background='linear-gradient(90deg,#44aaff,#ffe14d)';
+    handBarDot.style.background='#44aaff';
+  }
+}
 
 function onResults(results) {
-  hCtx.clearRect(0, 0, handCanvas.width, handCanvas.height);
+  hCtx.clearRect(0,0,handCanvas.width,handCanvas.height);
 
-  if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
-    handY = null;
-    gestureLabel.textContent = '✋ No hand detected';
+  if (!results.multiHandLandmarks||results.multiHandLandmarks.length===0) {
+    handY=null;
+    gestureLabel.textContent='✋ No hand detected';
+    handBarFill.style.width='0%';
+    handBarDot.style.left='50%';
+    handBarLabel.textContent='—';
     return;
   }
 
-  const lm    = results.multiHandLandmarks[0];
-  const thumb = lm[4];   // thumb tip
-  const index = lm[8];   // index tip
-  const wrist = lm[0];
+  const lm=results.multiHandLandmarks[0];
+  const thumb=lm[4], index=lm[8], wrist=lm[0];
 
-  // Draw skeleton
-  drawConnectors(hCtx, lm, HAND_CONNECTIONS, { color: 'rgba(255,225,77,0.6)', lineWidth: 2 });
-  drawLandmarks(hCtx, lm, { color: '#fff', fillColor: 'rgba(255,100,100,0.8)', lineWidth: 1, radius: 3 });
+  drawConnectors(hCtx,lm,HAND_CONNECTIONS,{color:'rgba(255,225,77,0.6)',lineWidth:2});
+  drawLandmarks(hCtx,lm,{color:'#fff',fillColor:'rgba(255,100,100,0.8)',lineWidth:1,radius:3});
 
-  // ── Hand Y for guiding bird ──
-  // Use average of all fingertip Y values for a stable hand-center reading
-  const tips = [lm[4], lm[8], lm[12], lm[16], lm[20]];
-  handY = tips.reduce((s, t) => s + t.y, 0) / tips.length;
+  // Stable hand Y = average of all 5 fingertips
+  const tips=[lm[4],lm[8],lm[12],lm[16],lm[20]];
+  handY = tips.reduce((s,t)=>s+t.y,0)/tips.length;
+  updateHandBar(handY);
 
-  // ── Pinch detection ──
-  const pinchDist  = dist(thumb, index);
-  const isPinching = pinchDist < 0.08;
-  const pinchPct   = Math.round((1 - Math.min(pinchDist / 0.08, 1)) * 100);
+  // Pinch
+  const pinchDist=dist(thumb,index);
+  const isPinching=pinchDist<0.08;
+  const pinchPct=Math.round((1-Math.min(pinchDist/0.08,1))*100);
 
   if (isPinching) {
-    gestureLabel.textContent = '🤌 PINCH — FLAP!';
-    const now = Date.now();
-    if (now - lastFlapTime > FLAP_COOLDOWN_MS) {
-      lastFlapTime = now;
-      flap();
-    }
+    gestureLabel.textContent='🤌 PINCH — FLAP!';
+    const now=Date.now();
+    if(now-lastFlapTime>FLAP_COOLDOWN_MS){ lastFlapTime=now; flap(); }
   } else {
-    const filled = Math.floor(pinchPct / 10);
-    const bar = '▓'.repeat(filled) + '░'.repeat(10 - filled);
-    const zone = handY < 0.4 ? '⬆ HIGH' : handY > 0.65 ? '⬇ LOW' : '✋ MID';
-    gestureLabel.textContent = zone + '  ' + bar;
+    const zone=handY<0.38?'⬆':handY>0.65?'⬇':'✋';
+    const filled=Math.floor(pinchPct/10);
+    gestureLabel.textContent=zone+' '+'▓'.repeat(filled)+'░'.repeat(10-filled)+' '+pinchPct+'%';
   }
 
-  // Highlight thumb & index tips
-  [thumb, index].forEach((t, i) => {
+  [thumb,index].forEach((t,i)=>{
     hCtx.beginPath();
-    hCtx.arc(t.x * handCanvas.width, t.y * handCanvas.height, 9, 0, Math.PI*2);
-    hCtx.fillStyle = isPinching ? '#ff4444' : (i === 0 ? '#ffe14d' : '#44ff88');
-    hCtx.fill();
-    hCtx.strokeStyle = '#fff'; hCtx.lineWidth = 2; hCtx.stroke();
+    hCtx.arc(t.x*handCanvas.width,t.y*handCanvas.height,9,0,Math.PI*2);
+    hCtx.fillStyle=isPinching?'#ff4444':(i===0?'#ffe14d':'#44ff88');
+    hCtx.fill(); hCtx.strokeStyle='#fff'; hCtx.lineWidth=2; hCtx.stroke();
   });
-
-  // Pinch line
   hCtx.beginPath();
-  hCtx.moveTo(thumb.x * handCanvas.width, thumb.y * handCanvas.height);
-  hCtx.lineTo(index.x * handCanvas.width, index.y * handCanvas.height);
-  hCtx.strokeStyle = isPinching ? '#ff4444' : 'rgba(255,225,77,0.7)';
-  hCtx.lineWidth = isPinching ? 3 : 1.5;
-  hCtx.stroke();
+  hCtx.moveTo(thumb.x*handCanvas.width,thumb.y*handCanvas.height);
+  hCtx.lineTo(index.x*handCanvas.width,index.y*handCanvas.height);
+  hCtx.strokeStyle=isPinching?'#ff4444':'rgba(255,225,77,0.7)';
+  hCtx.lineWidth=isPinching?3:1.5; hCtx.stroke();
 }
 
 async function initCamera() {
   try {
-    camStatus.textContent = 'Loading MediaPipe...';
-    handCanvas.width  = 300;
-    handCanvas.height = 225;
+    camStatus.textContent='Loading MediaPipe...';
+    handCanvas.width=300; handCanvas.height=225;
 
-    const hands = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
-    hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.6 });
+    const hands=new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+    hands.setOptions({maxNumHands:1,modelComplexity:1,minDetectionConfidence:0.7,minTrackingConfidence:0.6});
     hands.onResults(onResults);
 
-    const camera = new Camera(video, {
-      onFrame: async () => { await hands.send({ image: video }); },
-      width: 320, height: 240,
+    const camera=new Camera(video,{
+      onFrame:async()=>{ await hands.send({image:video}); },
+      width:320, height:240,
     });
     await camera.start();
-
-    camStatus.textContent = '';
-    gestureLabel.textContent = '✋ Show your hand!';
-
-    if (game.state === 'idle') {
-      overlay.innerHTML = `
-        <div class="card"><h1>🐦 FLAPPY<br>GESTURE</h1></div>
-        <div class="card"><p>📷 Camera ready!<br>Pinch to START & FLAP<br>Move hand UP/DOWN to guide</p></div>
-      `;
-    }
-  } catch (err) {
+    camStatus.textContent='';
+    gestureLabel.textContent='✋ Show your hand!';
+    const msg=document.getElementById('camReadyMsg');
+    if(msg) msg.textContent='📷 Camera ready! Pick a mode ↑';
+  } catch(err) {
     console.error(err);
-    camStatus.textContent = '⚠ Camera error';
-    gestureLabel.textContent = '⚠ Use SPACE / Click';
-    if (game.state === 'idle') {
-      overlay.innerHTML = `
-        <div class="card"><h1>🐦 FLAPPY<br>BIRD</h1></div>
-        <div class="card"><p>⚠ Camera unavailable<br>Use SPACE or CLICK to flap!</p></div>
-      `;
-    }
+    camStatus.textContent='⚠ Camera error';
+    gestureLabel.textContent='⚠ Use SPACE/Click';
   }
 }
 
-window.addEventListener('load', () => { setTimeout(initCamera, 800); });
+window.addEventListener('load',()=>{ setTimeout(initCamera,800); });
 </script>
 </body>
 </html>
