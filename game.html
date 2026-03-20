@@ -85,12 +85,7 @@
     z-index:2;
   }
 
-  #gestureLabel {
-    font-family:'VT323',monospace; font-size:22px; color:var(--neon);
-    background:rgba(0,0,0,0.6); backdrop-filter:blur(4px);
-    padding:8px 14px; border:2px solid rgba(255,225,77,0.4);
-    border-radius:6px; text-align:center; letter-spacing:1px;
-  }
+
 
   #instructions {
     font-family:'VT323',monospace; font-size:17px; color:#c8d4ff;
@@ -155,7 +150,7 @@
       </div>
     </div>
 
-    <div id="gestureLabel">📷 Starting cam...</div>
+
     <div id="camStatus"></div>
     <div id="instructions">
       <span class="sec">— CONTROLS —</span>
@@ -164,7 +159,7 @@
       🤌 Pinch → extra flap boost
       <hr class="sep">
       <span class="sec">— COLLECT —</span>
-      🍎🍊🍋 Fruits = +1 point<br>
+      🍎 Flap near fruit to collect<br>
       🐦 Enemy birds = instant death
       <hr class="sep">
       ⌨️ SPACE / click = fallback
@@ -180,7 +175,7 @@ const canvas  = document.getElementById('gameCanvas');
 const ctx     = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
 const overlay      = document.getElementById('overlay');
-const gestureLabel = document.getElementById('gestureLabel');
+const gestureLabel = document.getElementById('handBarLabel'); // reuse hand bar label
 const handBarFill  = document.getElementById('handBarFill');
 const handBarDot   = document.getElementById('handBarDot');
 const handBarLabel = document.getElementById('handBarLabel');
@@ -205,6 +200,7 @@ let game = {
   clouds:[{x:80,y:80},{x:220,y:120},{x:310,y:60}],
   lastPipe:0, lastFruit:0, lastEnemy:0,
   frame:0, groundX:0,
+  lastFlapFrame:0, // track when bird last flaped (for fruit collection)
 };
 
 
@@ -215,11 +211,25 @@ function spawnPipe() {
   game.pipes.push({x:W+10, topH, scored:false});
 }
 function spawnFruit() {
-  // Spawn fruit in the center of the last pipe gap so it's reachable
-  let spawnY = H/2; // default to middle
+  // Varied positions: sometimes gap center, sometimes offset toward edges,
+  // sometimes between pipes (harder). Not always reachable without adjusting.
+  let spawnY;
+  const roll = Math.random();
   if (game.pipes.length > 0) {
     const lastP = game.pipes[game.pipes.length-1];
-    spawnY = lastP.topH + PIPE_GAP/2; // center of gap
+    const gapCenter = lastP.topH + PIPE_GAP/2;
+    const gapTop    = lastP.topH + 30;
+    const gapBot    = lastP.topH + PIPE_GAP - 30;
+    if (roll < 0.4) {
+      // Near center — moderate
+      spawnY = gapCenter + (Math.random()-0.5)*40;
+    } else if (roll < 0.7) {
+      // Near top of gap — requires flying high
+      spawnY = gapTop + Math.random()*25;
+    } else {
+      // Near bottom of gap — requires flying low
+      spawnY = gapBot - Math.random()*25;
+    }
   } else {
     spawnY = 120 + Math.random()*(H-300);
   }
@@ -228,6 +238,7 @@ function spawnFruit() {
     y: spawnY,
     type: FRUITS[Math.floor(Math.random()*FRUITS.length)],
     bob: Math.random()*Math.PI*2,
+    needsFlap: false, // will be set true when bird is close
   });
 }
 function spawnEnemy() {
@@ -255,7 +266,10 @@ function resetGame() {
 // ── Flap ──
 function flap() {
   if (game.state==='idle'||game.state==='dead') { resetGame(); return; }
-  if (game.state==='playing') game.bird.vy = FLAP_FORCE;
+  if (game.state==='playing') {
+    game.bird.vy = FLAP_FORCE;
+    game.lastFlapFrame = game.frame; // record flap moment
+  }
 }
 
 // ── Collision ──
@@ -373,11 +387,21 @@ function gameLoop() {
 
     game.fruits.forEach(f=>{
       f.x-=PIPE_SPEED; f.bob+=0.07;
-      f.y+=Math.sin(f.bob)*0.4; // gentle bob
-      if(Math.hypot(game.bird.x-f.x,game.bird.y-f.y)<32){
-        game.score++;
-        game.effects.push({x:f.x,y:f.y,text:'+1 '+f.type,life:35,vy:-1.5});
-        f.x=-999; // mark collected
+      f.y+=Math.sin(f.bob)*0.4;
+      const dist=Math.hypot(game.bird.x-f.x,game.bird.y-f.y);
+      if(dist<20){
+        const flapedRecently = (game.frame - game.lastFlapFrame) < 20;
+        if(flapedRecently){
+          game.score++;
+          game.effects.push({x:f.x,y:f.y,text:'+1 '+f.type,life:35,vy:-1.5});
+          f.x=-999; // collected
+        } else {
+          // Show "FLAP!" hint above fruit
+          if(!f._hintShown || game.frame - f._hintFrame > 15){
+            f._hintShown=true; f._hintFrame=game.frame;
+            game.effects.push({x:f.x,y:f.y-30,text:'FLAP!',life:25,vy:-0.8,col:'#ff4'});
+          }
+        }
       }
     });
     game.fruits=game.fruits.filter(f=>f.x>-100);
@@ -401,8 +425,15 @@ function gameLoop() {
   // Fruits with glow
   game.fruits.forEach(f=>{
     ctx.save();
-    ctx.shadowColor='rgba(255,220,80,0.95)'; ctx.shadowBlur=22;
-    ctx.font='30px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    // Bright backing circle
+    ctx.beginPath(); ctx.arc(f.x, f.y, 18, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,240,100,0.25)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,220,80,0.7)'; ctx.lineWidth = 2;
+    ctx.stroke();
+    // Fruit emoji with glow
+    ctx.shadowColor='rgba(255,220,80,1)'; ctx.shadowBlur=28;
+    ctx.font='28px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(f.type,f.x,f.y);
     ctx.restore();
   });
@@ -419,8 +450,8 @@ function gameLoop() {
   // Collect effects
   game.effects.forEach(ef=>{
     ctx.globalAlpha=ef.life/35;
-    ctx.font='bold 14px "Press Start 2P"';
-    ctx.fillStyle='#ffe14d'; ctx.textAlign='center';
+    ctx.font='bold 12px "Press Start 2P"';
+    ctx.fillStyle=ef.col||'#ffe14d'; ctx.textAlign='center';
     ctx.fillText(ef.text,ef.x,ef.y);
     ctx.globalAlpha=1;
   });
@@ -536,14 +567,11 @@ function onResults(results) {
   const pinchPct=Math.round((1-Math.min(pinchDist/0.08,1))*100);
 
   if (isPinching) {
-    gestureLabel.textContent='🤌 PINCH — FLAP!';
     const now=Date.now();
     if(now-lastFlapTime>FLAP_COOLDOWN_MS){ lastFlapTime=now; flap(); }
-  } else {
-    const zone=handY<0.38?'⬆':handY>0.65?'⬇':'✋';
-    const filled=Math.floor(pinchPct/10);
-    gestureLabel.textContent=zone+' '+'▓'.repeat(filled)+'░'.repeat(10-filled)+' '+pinchPct+'%';
+    // label updated by updateHandBar — no separate text needed
   }
+  // handBarLabel is updated by updateHandBar with HIGH/MID/LOW
 
   [thumb,index].forEach((t,i)=>{
     hCtx.beginPath();
