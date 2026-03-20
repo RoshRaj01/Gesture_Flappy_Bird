@@ -26,35 +26,42 @@
     align-items:center; justify-content:center;
     padding:16px; min-height:100vh;
   }
+  /* Ensure no gap bleeds from desktop body flex centering */
 
   /* ── MOBILE layout ── */
   @media (max-width:700px) {
     html, body {
       overflow:hidden;
-      align-items:flex-start;
-      justify-content:flex-start;
+      align-items:flex-start !important;
+      justify-content:flex-start !important;
       height:100dvh; width:100vw;
+      padding:0 !important;
+      margin:0 !important;
     }
 
     #app {
       flex-direction:column;
       align-items:stretch;
-      gap:0; padding:0;
+      gap:0 !important;
+      padding:0 !important;
+      margin:0 !important;
       width:100vw;
       height:100dvh;
       overflow:hidden;
     }
 
-    /* TOP: game */
+    /* TOP: game — flush to top, no gap */
     #gameWrap {
       width:100%;
-      height:47dvh;
+      height:50dvh;
       flex-shrink:0;
       background:#120820;
       display:flex;
-      align-items:center;
+      align-items:flex-start;
       justify-content:center;
       overflow:hidden;
+      margin-top:0 !important;
+      padding-top:0 !important;
     }
     #gameCanvas {
       width:auto !important;
@@ -65,7 +72,7 @@
 
     /* BOTTOM: fills remaining 53dvh */
     #camPanel {
-      height:53dvh !important;
+      height:50dvh !important;
       flex-shrink:0 !important;
       display:flex !important;
       flex-direction:column !important;
@@ -119,7 +126,7 @@
     #instructions {
       flex:1 !important;
       min-height:0 !important;
-      max-height:calc(53dvh - 38px) !important;
+      max-height:calc(50dvh - 38px) !important;
       font-size:10.5px !important;
       padding:7px 6px !important;
       line-height:1.75 !important;
