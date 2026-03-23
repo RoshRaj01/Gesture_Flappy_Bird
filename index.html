@@ -219,7 +219,7 @@
 <body>
 <div id="app">
   <div id="gameWrap">
-    <canvas id="gameCanvas" width="360" height="640"></canvas>
+    <canvas id="gameCanvas" width="860" height="640"></canvas>
     <div id="overlay" class="active">
       <div class="card"><h1>🐦 FLAPPY<br>GESTURE</h1></div>
       <div class="card"><p>✋ Move hand UP/DOWN to guide bird<br>🤌 Pinch to START &amp; mark flap<br>🍎 Collect fruits · 🐦 Dodge enemies<br><br><span id="camReadyMsg">📷 Allow camera access</span></p></div>
@@ -271,7 +271,7 @@
 // ─────────────────────────────────────────────────────
 const canvas = document.getElementById('gameCanvas');
 const ctx    = canvas.getContext('2d');
-const W = 360, H = 640;
+const W = 860, H = 640;
 
 function scaleCanvas() {
   const isMobile = window.innerWidth <= 700;
