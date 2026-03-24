@@ -48,7 +48,7 @@ A modern twist on the classic **Flappy Bird**, controlled entirely using **hand 
 
 👉 If camera is not available:
 
-* Click / tap screen to flap
+* Tab / Spacebar / Click  to flap
 
 ---
 
